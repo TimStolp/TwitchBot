@@ -15,54 +15,25 @@ sock.send("PASS {}\n".format(token).encode('utf-8'))
 sock.send("NICK {}\n".format(nickname).encode('utf-8'))
 sock.send("JOIN {}\n".format(channel).encode('utf-8'))
 
-modes = {"test": 1, "clown": 2}
-global on
-on = False
-global command
-command = 0
+def timer(command):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect(('127.0.0.1', 65432))
+        s.sendall("{} {}".format(command, 1).encode("utf-8"))
 
+    time.sleep(10)
 
-def timer():
-    global on
-    on = True
-    time.sleep(5)
-    on = False
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect(('127.0.0.1', 65432))
+        s.sendall("{} {}".format(0, 0).encode("utf-8"))
 
-
-def overlay():
-    global command
-    global on
-    while True:
-        if on:
-            if command == 1:
-                while on:
-                    print("test")
-                    time.sleep(1)
-            elif command == 2:
-                while on:
-                    print("test2")
-                    time.sleep(1)
-
-
-def default():
-    global on
-    while True:
-        if not on:
-            print("default")
-            time.sleep(1)
-
-
-p1 = Thread(target=default)
-p1.start()
-p2 = Thread(target=overlay)
-p2.start()
 while True:
-    resp = sock.recv(2048).decode('utf-8').split(":")[-1].rstrip()
+    resp = sock.recv(2048).decode('utf-8')
     print(resp)
-    if resp.startswith("!"):
-        command = modes[resp[1:]]
-        resp = ""
-        p3 = Thread(target=timer)
-        p3.start()
     if resp.startswith('PING'):
         sock.send("PONG\n".encode('utf-8'))
+
+    message = resp.split(":")[-1].rstrip()
+
+    if message.startswith("!"):
+        timerthread = Thread(target=timer, args=[message[1:]])
+        timerthread.start()
